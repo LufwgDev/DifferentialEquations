@@ -1,3 +1,14 @@
+#enable long paths in Windows
+
+#Method 1: Using Group Policy Editor
+#Press Win + R on your keyboard, type gpedit.msc, and press Enter to open the Local Group Policy Editor.
+#Navigate to Computer Configuration > Administrative Templates > System > Filesystem.
+#Double-click on Enable Win32 long paths.
+#Select Enabled, click Apply, and then click OK.
+#Restart your computer to apply the changes. 
+
+#pip install vpython
+import vpython
 from vpython import *
 import numpy as np
 
