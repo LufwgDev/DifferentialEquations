@@ -1,114 +1,137 @@
 from vpython import *
-import numpy as np
+import time
 
-# -------------------------------------------------
-# ESCENA BASE
-# -------------------------------------------------
-scene = canvas(title="Vaciado de un tanque cilíndrico",
-               width=900, height=600, background=color.white)
+scene.title = "Simulación: Vaciado de Tanques con Fluidos Diferentes"
+scene.width = 1400
+scene.height = 700
+g = 9.8
 
-# lista para llevar los objetos creados en cada ejecución
-created_objects = []
+# ---- Físicas de los fluidos ---- #
+fluidos = {
+    "Agua": {"rho": 1000, "Cd": 0.62, "color": color.cyan},
+    "Aceite": {"rho": 900, "Cd": 0.55, "color": vector(1,0.7,0)},
+    "Mercurio": {"rho": 13500, "Cd": 0.70, "color": color.gray(0.7)}
+}
 
-wtext(text="\n--- Parámetros del modelo ---\n")
+H0 = 2
+radio = 1
+A_tanque = pi * radio**2
 
-# Sliders con valores dinámicos
-# --- Altura inicial ---
-texto_h0 = wtext(text="Altura inicial (h₀): 2.00 m\n")
+diam_orificio = 0.1
+A_orificio = pi * (diam_orificio/2)**2
 
-def actualizar_h0(s):
-    texto_h0.text = f"Altura inicial (h₀): {s.value:.2f} m\n"
+dt = 0.01
+paused = False
 
-slider_h0 = slider(min=0.5, max=10, value=2, step=0.1, bind=actualizar_h0)
+# ---- Variables independientes por tanque ---- #
+niveles = {}
+labels = {}
+tiempos = {nombre: 0 for nombre in fluidos}
+activo = {nombre: True for nombre in fluidos}
 
+offsets = [-2.8, 0, 2.8]
 
-# --- Constante k ---
-texto_k = wtext(text="\nConstante de vaciado (k): 0.40\n")
+# ---- Crear tanques ---- #
+for i, (nombre, props) in enumerate(fluidos.items()):
+    posx = offsets[i]
 
-def actualizar_k(s):
-    texto_k.text = f"\nConstante de vaciado (k): {s.value:.2f}\n"
+    cylinder(pos=vector(posx, 0, 0), axis=vector(0, 3, 0),
+             radius=radio, opacity=0.25)
 
-slider_k = slider(min=0.05, max=1.5, value=0.4, step=0.05, bind=actualizar_k)
+    niveles[nombre] = {
+        "h": H0,
+        "obj": cylinder(pos=vector(posx, 0, 0), axis=vector(0, H0, 0),
+                        radius=radio, color=props["color"])
+    }
 
+    labels[nombre] = label(pos=vector(posx, 3.2, 0),
+                           text=f"{nombre}\nh={H0:.2f} m\nTiempo: 0.00 s",
+                           height=14, box=True)
 
-# --- Radio R ---
-texto_R = wtext(text="\nRadio del tanque (R): 0.50 m\n")
+# ---- Texto general ---- #
+t_global = 0
+txt_t = label(pos=vector(0, 4.2, 0), text="Tiempo Global: 0.00 s", height=18)
 
-def actualizar_R(s):
-    texto_R.text = f"\nRadio del tanque (R): {s.value:.2f} m\n"
+# NUEVO ➜ mostrar diámetro del orificio
+txt_d = label(pos=vector(0, -0.9, 0),
+              text=f"Diámetro del Orificio: {diam_orificio:.2f} m",
+              height=16, box=True, color=color.white)
 
-slider_R = slider(min=0.2, max=2.5, value=0.5, step=0.05, bind=actualizar_R)
+# ---- Controles ---- #
+def toggle_pause(b):
+    global paused
+    paused = not paused
+    b.text = "▶ Reanudar" if paused else "⏸ Pausar"
 
+boton_pause = button(text="⏸ Pausar", bind=toggle_pause)
+button(text="⏮ Reiniciar", bind=lambda b: reiniciar())
 
-wtext(text="\n")
+# ---- Sliders ---- #
+def cambiar_altura(s):
+    for nombre in niveles:
+        if s.value > niveles[nombre]["h"]:
+            niveles[nombre]["h"] = s.value
+        niveles[nombre]["obj"].axis.y = niveles[nombre]["h"]
+        
 
-# Salidas numéricas
-salida_info = wtext(text="\nTiempo total: ---\n")
+slider_altura = slider(min=0.5, max=3, value=H0,
+                       bind=cambiar_altura, right=15)
+wtext(text=" Altura inicial (m)       ")
 
-# -------------------------------------------------
-# ECUACIÓN DIFERENCIAL
-# -------------------------------------------------
-def dhdt(h, k):
-    return -k * np.sqrt(h)
+def cambiar_diametro(s):
+    global diam_orificio, A_orificio
+    diam_orificio = s.value
+    A_orificio = pi * (diam_orificio/2)**2
+    txt_d.text = f"Diámetro del Orificio: {diam_orificio:.2f} m"  # 👌 se actualiza en vivo
 
+slider_diam = slider(min=0.05, max=0.9, value=diam_orificio,
+                     bind=cambiar_diametro, right=15)
+wtext(text=" Diámetro orificio (m)\n\n")
 
-# Limpiar objetos anteriores
-def hide_previous_objects():
-    global created_objects
-    for obj in created_objects:
-        try:
-            obj.visible = False
-        except:
-            pass
-    created_objects = []
+# ---- Reiniciar ---- #
+def reiniciar():
+    global t_global, paused, tiempos, activo
+    t_global = 0
+    paused = False
+    boton_pause.text = "⏸ Pausar"
 
+    for nombre in niveles:
+        niveles[nombre]["h"] = slider_altura.value
+        niveles[nombre]["obj"].axis.y = slider_altura.value
+        tiempos[nombre] = 0
+        activo[nombre] = True
+        labels[nombre].text = f"{nombre}\nh={slider_altura.value:.2f} m\nTiempo: 0.00 s"
 
-# Simulación
-def simular(ev):
-    global created_objects
+# ---- Simulación ---- #
+while True:
+    rate(60)
+    if paused:
+        continue
 
-    # Leer parámetros desde sliders
-    h0 = float(slider_h0.value)
-    k = float(slider_k.value)
-    R = float(slider_R.value)
+    t_global += dt
+    txt_t.text = f"Tiempo Global: {t_global:.2f} s"
 
-    # Ocultar objetos previos
-    hide_previous_objects()
+    for nombre, props in fluidos.items():
+        if not activo[nombre]:
+            continue
 
-    # Crear tanque y agua
-    tanque = cylinder(pos=vector(0, 0, 0), axis=vector(0, 3, 0),
-                      radius=R, opacity=0.15, color=color.gray(0.5))
-    agua = cylinder(pos=vector(0, 0, 0), axis=vector(0, h0, 0),
-                    radius=R * 0.98, color=color.cyan, opacity=0.6)
-    label_h = label(text=f"Altura del agua: {h0:.2f} m",
-                    pos=vector(0, 3.2, 0), box=False, height=20)
+        h = niveles[nombre]["h"]
 
-    created_objects.extend([tanque, agua, label_h])
+        if h <= 0:
+            activo[nombre] = False
+            continue
 
-    # Variables de simulación
-    h = h0
-    dt = 0.01
-    tiempo_total = 0.0
+        Cd = props["Cd"]
+        v = Cd * sqrt(2 * g * h)
+        dh = (A_orificio / A_tanque) * v * dt
 
-    # Loop
-    while h > 0:
-        rate(60)
+        h = max(h - dh, 0)
+        niveles[nombre]["h"] = h
+        niveles[nombre]["obj"].axis.y = h
 
-        # Euler
-        h = max(h + dhdt(h, k) * dt, 0)
+        tiempos[nombre] += dt
 
-        tiempo_total += dt
-
-        # Actualizar agua y etiqueta
-        agua.axis = vector(0, h, 0)
-        label_h.text = f"Altura del agua: {h:.2f} m"
-
-    # Mostrar resultados
-    salida_info.text = (f"\nTiempo total: {tiempo_total:.2f} s\n")
-
-
-# Botón para iniciar simulación
-boton = button(text="Iniciar simulación", bind=simular)
-
-# Evita que el script se cierre
-input("Presiona ENTER para salir...")
+        labels[nombre].text = (
+            f"{nombre}\nh={h:.2f} m\n"
+            f"Tiempo: {tiempos[nombre]:.2f} s"
+        )
