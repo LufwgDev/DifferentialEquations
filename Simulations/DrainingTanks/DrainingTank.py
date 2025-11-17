@@ -2,55 +2,113 @@ from vpython import *
 import numpy as np
 
 # -------------------------------------------------
-# Parámetros del modelo (puedes hacerlos variables)
-# -------------------------------------------------
-h0 = 2.0        # altura inicial del agua (m)
-k = 0.4         # constante de vaciado (1/s)
-R = 0.5         # radio del tanque (m)
-
-# -------------------------------------------------
-# Escena 3D básica
+# ESCENA BASE
 # -------------------------------------------------
 scene = canvas(title="Vaciado de un tanque cilíndrico",
-               width=700, height=500, background=color.white)
+               width=900, height=600, background=color.white)
 
-# Cilindro exterior (tanque)
-tanque = cylinder(pos=vector(0,0,0), axis=vector(0,3,0),
-                  radius=R, opacity=0.15, color=color.gray(0.5))
+# lista para llevar los objetos creados en cada ejecución
+created_objects = []
 
-# Nivel de agua (un cilindro interno cuyo alto cambia)
-agua = cylinder(pos=vector(0,0,0), axis=vector(0,h0,0),
-                radius=R*0.98, color=color.cyan, opacity=0.6)
+wtext(text="\n--- Parámetros del modelo ---\n")
 
-# Etiqueta visible
-label_h = label(text=f"Altura del agua: {h0:.2f} m",
-                pos=vector(0,3.2,0), box=False, height=20)
+# Sliders con valores dinámicos
+# --- Altura inicial ---
+texto_h0 = wtext(text="Altura inicial (h₀): 2.00 m\n")
+
+def actualizar_h0(s):
+    texto_h0.text = f"Altura inicial (h₀): {s.value:.2f} m\n"
+
+slider_h0 = slider(min=0.5, max=10, value=2, step=0.1, bind=actualizar_h0)
+
+
+# --- Constante k ---
+texto_k = wtext(text="\nConstante de vaciado (k): 0.40\n")
+
+def actualizar_k(s):
+    texto_k.text = f"\nConstante de vaciado (k): {s.value:.2f}\n"
+
+slider_k = slider(min=0.05, max=1.5, value=0.4, step=0.05, bind=actualizar_k)
+
+
+# --- Radio R ---
+texto_R = wtext(text="\nRadio del tanque (R): 0.50 m\n")
+
+def actualizar_R(s):
+    texto_R.text = f"\nRadio del tanque (R): {s.value:.2f} m\n"
+
+slider_R = slider(min=0.2, max=2.5, value=0.5, step=0.05, bind=actualizar_R)
+
+
+wtext(text="\n")
+
+# Salidas numéricas
+salida_info = wtext(text="\nTiempo total: ---\n")
 
 # -------------------------------------------------
-# Ecuación diferencial: dh/dt = -k * sqrt(h)
+# ECUACIÓN DIFERENCIAL
 # -------------------------------------------------
-def dhdt(h):
+def dhdt(h, k):
     return -k * np.sqrt(h)
 
-# Integración simple (Euler)
-def actualizar_altura(h, dt):
-    return max(h + dhdt(h)*dt, 0)  # evita valores negativos
+
+# Limpiar objetos anteriores
+def hide_previous_objects():
+    global created_objects
+    for obj in created_objects:
+        try:
+            obj.visible = False
+        except:
+            pass
+    created_objects = []
 
 
-# -------------------------------------------------
-# Loop principal de animación
-# -------------------------------------------------
-h = h0
-dt = 0.01
+# Simulación
+def simular(ev):
+    global created_objects
 
-while h > 0:
-    rate(60)  # velocidad visual (fps)
+    # Leer parámetros desde sliders
+    h0 = float(slider_h0.value)
+    k = float(slider_k.value)
+    R = float(slider_R.value)
 
-    # Actualizar altura con la ED
-    h = actualizar_altura(h, dt)
+    # Ocultar objetos previos
+    hide_previous_objects()
 
-    # Actualizar visualmente el cilindro de agua
-    agua.axis = vector(0, h, 0)
+    # Crear tanque y agua
+    tanque = cylinder(pos=vector(0, 0, 0), axis=vector(0, 3, 0),
+                      radius=R, opacity=0.15, color=color.gray(0.5))
+    agua = cylinder(pos=vector(0, 0, 0), axis=vector(0, h0, 0),
+                    radius=R * 0.98, color=color.cyan, opacity=0.6)
+    label_h = label(text=f"Altura del agua: {h0:.2f} m",
+                    pos=vector(0, 3.2, 0), box=False, height=20)
 
-    # Actualizar etiqueta
-    label_h.text = f"Altura del agua: {h:.2f} m"
+    created_objects.extend([tanque, agua, label_h])
+
+    # Variables de simulación
+    h = h0
+    dt = 0.01
+    tiempo_total = 0.0
+
+    # Loop
+    while h > 0:
+        rate(60)
+
+        # Euler
+        h = max(h + dhdt(h, k) * dt, 0)
+
+        tiempo_total += dt
+
+        # Actualizar agua y etiqueta
+        agua.axis = vector(0, h, 0)
+        label_h.text = f"Altura del agua: {h:.2f} m"
+
+    # Mostrar resultados
+    salida_info.text = (f"\nTiempo total: {tiempo_total:.2f} s\n")
+
+
+# Botón para iniciar simulación
+boton = button(text="Iniciar simulación", bind=simular)
+
+# Evita que el script se cierre
+input("Presiona ENTER para salir...")
