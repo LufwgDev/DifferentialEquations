@@ -18,6 +18,19 @@ scene = canvas(title="Tanque de mezcla: concentración y nivel",
                width=1000, height=700, background=color.gray(0.2))
 scene.center = vector(0, 2, 0)
 
+# Gráficas
+graph_altura = graph(title="Altura vs Tiempo", 
+                     xtitle="Tiempo (s)", ytitle="Altura (m)",
+                     width=650, height=300, align="right")
+curve_altura = gcurve(color=color.cyan, width=2, label="H(t)")
+curve_altura_teorica = gcurve(color=color.yellow, width=2, label="H(t) - Teórica", dot=True, dot_radius=3)
+
+graph_concentracion = graph(title="Concentración vs Tiempo", 
+                            xtitle="Tiempo (s)", ytitle="Concentración (g/L)",
+                            width=650, height=300, align="right")
+curve_conc = gcurve(color=color.orange, width=2, label="C(t)")
+curve_conc_teorica = gcurve(color=color.red, width=2, label="C(t) - Teórica", dot=True, dot_radius=3)
+
 # lista para llevar los objetos creados en cada ejecución
 created_objects = []
 
@@ -56,11 +69,105 @@ slider_radio = slider(min=0.5, max=3.0, value=1.5, step=0.1, bind=actualizar_rad
 
 wtext(text="\n")
 
-# Mostrar ecuaciones diferenciales
-ecuacion_text = wtext(text="\nEcuaciones:\n  dC/dt = (Qin·Cin - Qout·C) / V\n  dH/dt = (Qin - Qout) / A\n")
+# Mostrar ecuaciones diferenciales generales
+ecuacion_text = wtext(text="\n--- Ecuaciones Diferenciales ---\n")
+ecuacion_text2 = wtext(text="Sistema acoplado:\n")
+ecuacion_text3 = wtext(text="  dC/dt = (Qin·Cin - Qout·C) / V(t)\n")
+ecuacion_text4 = wtext(text="  dH/dt = (Qin - Qout) / A\n")
+ecuacion_text5 = wtext(text="donde V(t) = A·H(t)\n\n")
+
+# Ecuaciones con parámetros
+ecuacion_params = wtext(text="Ecuaciones con parámetros: (presiona 'Iniciar simulación')\n\n")
+
+# Análisis de las ecuaciones
+analisis_ec = wtext(text="")
 
 # Salidas numéricas
 salida_info = wtext(text="\nTiempo: 0.0 s | Nivel: 0.0 m | Concentración: 0.0 g/L\n")
+
+# -------------------------------------------------
+# ANÁLISIS DE LAS ECUACIONES
+# -------------------------------------------------
+def analizar_ecuaciones(Qin, Qout, Cin, h0, A):
+    """
+    Analiza el sistema de ecuaciones diferenciales del tanque de mezcla.
+    
+    Sistema:
+    1) dH/dt = (Qin - Qout) / A
+    2) dC/dt = (Qin·Cin - Qout·C) / (A·H)
+    
+    Soluciones analíticas:
+    """
+    
+    texto = "\n--- Análisis del Sistema ---\n\n"
+    
+    # Ecuación de altura (independiente, lineal)
+    texto += "🔹 Ecuación de Altura (EDO lineal de primer orden):\n"
+    texto += f"   dH/dt = ({Qin:.3f} - {Qout:.3f}) / {A:.4f}\n"
+    
+    delta_Q = Qin - Qout
+    
+    if abs(delta_Q) < 1e-6:
+        texto += f"   dH/dt = 0 (nivel constante)\n"
+        texto += f"   Solución: H(t) = {h0:.2f} m (constante)\n\n"
+        H_final = h0
+        comportamiento_H = "constante"
+    else:
+        k_H = delta_Q / A
+        texto += f"   dH/dt = {k_H:.6f} m/s\n"
+        texto += f"   Solución: H(t) = {h0:.2f} + {k_H:.6f}·t\n"
+        
+        if delta_Q > 0:
+            texto += f"   ⬆️ El tanque se LLENA (Qin > Qout)\n\n"
+            comportamiento_H = "llenado"
+            H_final = None  # dependerá de cuándo se llene
+        else:
+            t_vaciado = -h0 / k_H
+            texto += f"   ⬇️ El tanque se VACÍA (Qin < Qout)\n"
+            texto += f"   Tiempo de vaciado: {t_vaciado:.2f} s\n\n"
+            comportamiento_H = "vaciado"
+            H_final = 0
+    
+    # Ecuación de concentración (depende de H(t))
+    texto += "🔹 Ecuación de Concentración (EDO no lineal):\n"
+    texto += f"   dC/dt = ({Qin:.3f}·{Cin:.2f} - {Qout:.3f}·C) / (A·H(t))\n"
+    
+    if abs(delta_Q) < 1e-6:
+        # Caso especial: volumen constante
+        texto += f"   Con H(t) constante, V = {A*h0:.4f} m³:\n"
+        tau = (A * h0) / Qout
+        C_eq = (Qin / Qout) * Cin
+        texto += f"   dC/dt = ({Qin*Cin:.4f} - {Qout:.3f}·C) / {A*h0:.4f}\n"
+        texto += f"   Solución (exponencial):\n"
+        texto += f"   C(t) = {C_eq:.2f}·(1 - e^(-t/{tau:.2f}))\n"
+        texto += f"   Concentración de equilibrio: C_eq = {C_eq:.2f} g/L\n"
+        texto += f"   Constante de tiempo: τ = {tau:.2f} s\n\n"
+    else:
+        texto += f"   Solución compleja (depende de H(t) variable)\n"
+        if Qin > Qout:
+            C_final_estimado = Cin * (Qin / Qout)
+            texto += f"   C(t) → {Cin:.2f} g/L (tiende a Cin al llenarse)\n\n"
+        else:
+            texto += f"   C(t) evoluciona hasta vaciarse\n\n"
+    
+    return texto, comportamiento_H, delta_Q / A if abs(delta_Q) > 1e-6 else 0
+
+
+def altura_teorica(t, h0, k_H):
+    """Calcula H(t) = h0 + k_H·t"""
+    return h0 + k_H * t
+
+
+def concentracion_teorica_volumen_constante(t, Cin, Qin, Qout, V):
+    """
+    Para volumen constante (Qin = Qout):
+    C(t) = C_eq·(1 - e^(-t/τ))
+    donde C_eq = (Qin/Qout)·Cin y τ = V/Qout
+    """
+    C_eq = (Qin / Qout) * Cin
+    tau = V / Qout
+    return C_eq * (1 - np.exp(-t / tau))
+
 
 # -------------------------------------------------
 # FUNCIONES DE SIMULACIÓN
@@ -84,7 +191,7 @@ def concentration_to_color(C, Cmax=20):
 
 # Simulación
 def simular(ev):
-    global created_objects
+    global created_objects, curve_altura, curve_conc, curve_altura_teorica, curve_conc_teorica
 
     # Leer parámetros desde sliders
     Qin = float(slider_Qin.value)
@@ -96,7 +203,28 @@ def simular(ev):
     # Parámetros calculados
     tank_height = 4.0      # m
     A = np.pi * tank_radius**2  # área transversal (m²)
-    V = A * tank_height     # volumen total del tanque (m³)
+    V0 = A * water_height0  # volumen inicial
+
+    # Construir ecuaciones con parámetros
+    ec_texto = (f"Ecuaciones con parámetros:\n"
+                f"  dC/dt = ({Qin:.3f}·{Cin:.2f} - {Qout:.3f}·C) / (A·H)\n"
+                f"  dH/dt = ({Qin:.3f} - {Qout:.3f}) / {A:.4f}\n"
+                f"  dH/dt = {(Qin-Qout)/A:.6f} m/s\n\n")
+    ecuacion_params.text = ec_texto
+    
+    # Análisis del sistema
+    texto_analisis, comportamiento_H, k_H = analizar_ecuaciones(Qin, Qout, Cin, water_height0, A)
+    analisis_ec.text = texto_analisis
+
+    # Limpiar gráficas anteriores
+    curve_altura.delete()
+    curve_conc.delete()
+    curve_altura_teorica.delete()
+    curve_conc_teorica.delete()
+    curve_altura = gcurve(color=color.cyan, width=2, label="H(t)")
+    curve_conc = gcurve(color=color.orange, width=2, label="C(t)")
+    curve_altura_teorica = gcurve(color=color.yellow, width=2, label="H(t) - Teórica", dot=True, dot_radius=3)
+    curve_conc_teorica = gcurve(color=color.red, width=2, label="C(t) - Teórica", dot=True, dot_radius=3)
 
     # Ocultar objetos previos
     hide_previous_objects()
@@ -140,9 +268,10 @@ def simular(ev):
     # VARIABLES DE SIMULACIÓN
     # ============================
     t = 0
-    dt = 0.1
+    dt = 0.05
     C = 0.0        # g/L (inicialmente pura)
     water_height = water_height0
+    contador_graficas = 0
 
     # ============================
     # BUCLE DE SIMULACIÓN
@@ -157,11 +286,14 @@ def simular(ev):
     boton_detener = button(text="Detener simulación", bind=stop_simulation)
     created_objects.append(boton_detener)
     
+    volumen_constante = abs(Qin - Qout) < 1e-6
+    
     while running:
         rate(60)
 
         # EDO de concentración
-        dCdt = (Qin*Cin - Qout*C) / (A * water_height) if water_height > 0 else 0
+        V_actual = A * water_height
+        dCdt = (Qin*Cin - Qout*C) / V_actual if V_actual > 0 else 0
         C += dCdt * dt
 
         # EDO de nivel (balance de volumen)
@@ -194,6 +326,15 @@ def simular(ev):
             drop.pos = inlet.pos + vector(0, 0, 0)
             drop.clear_trail()
 
+        # Calcular valores teóricos
+        H_teorica = altura_teorica(t, water_height0, k_H)
+        H_teorica = max(0, min(H_teorica, tank_height))
+        
+        if volumen_constante:
+            C_teorica = concentracion_teorica_volumen_constante(t, Cin, Qin, Qout, V0)
+        else:
+            C_teorica = C  # Aproximación (la solución exacta es compleja)
+
         # Texto informativo
         info.text = (f"t = {t:.1f} s\n"
                      f"Nivel: {water_height:.2f} m\n"
@@ -202,11 +343,26 @@ def simular(ev):
         # Actualizar información general
         salida_info.text = f"\nTiempo: {t:.1f} s | Nivel: {water_height:.2f} m | Concentración: {C:.2f} g/L\n"
 
+        # Agregar puntos a las gráficas
+        contador_graficas += 1
+        if contador_graficas % 3 == 0:
+            curve_altura.plot(t, water_height)
+            curve_conc.plot(t, C)
+            # Graficar soluciones teóricas
+            if contador_graficas % 6 == 0:
+                curve_altura_teorica.plot(t, H_teorica)
+                if volumen_constante:
+                    curve_conc_teorica.plot(t, C_teorica)
+        
+        # Límite de tiempo de simulación
+        if t > 200:
+            break
+
     # Limpiar botón de detener
     boton_detener.delete()
 
 # Botón para iniciar simulación
-boton_iniciar = button(text="Iniciar simulación", bind=simular)
+boton_iniciar = button(text="▶ Iniciar simulación", bind=simular)
 
 # Evita que el script se cierre
 input("Presiona ENTER para salir...")

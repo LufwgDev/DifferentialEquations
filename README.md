@@ -53,15 +53,6 @@ Stiffer springs, heavier masses
 
 Real-time bouncing motion in 3D (yes, it looks cool)
 
-🪵 5. Deflection of a Beam (Euler–Bernoulli model)
-
-Simulates:
-
-How a beam bends under different loads
-
-Adjustable material/geometry parameters
-
-Smooth deformation curves
 
 🧰 Technologies Used
 
