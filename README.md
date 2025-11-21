@@ -1,111 +1,173 @@
-# DifferentialEquations
-🌊 Differential Equations Simulation Project
+📘 Proyecto de Simulaciones Interactivas de Ecuaciones Diferenciales
+Modelos visuales, dinámicos y completamente paramétricos en Python
 
-Interactive • Visual • Parametric • Python-powered
+Este proyecto reúne un conjunto de simulaciones interactivas diseñadas para visualizar, experimentar y comprender el comportamiento de sistemas clásicos modelados por ecuaciones diferenciales.
 
-Welcome to the Differential Equations Simulation Suite — a collection of fun, interactive, visually rich simulations designed to bring classic differential-equation models to life.
+Cada simulación es completamente parametrizable, animada en tiempo real y construida en un entorno unificado usando Python + VPython para la animación 3D y la interfaz con sliders.
 
-This project shows how real mathematical models move, flow, oscillate, charge, and bend when you tweak their parameters. Everything runs inside a clean, unified Python environment with sliders, animations, and 3D graphics.
+El objetivo principal es que cualquier persona pueda manipular parámetros, observar cambios instantáneos y entender cómo se comporta cada modelo físico/matemático.
 
-🎯 What This Project Includes
+🚀 Simulaciones Incluidas
+🧪 1. Tanque de Mezclas (TanqueDeMezclas.py)
 
-We simulate five of the most common and important systems in a Differential Equations course:
+Simulación del clásico problema de mezcla con entrada y salida de solución salina.
 
-🧪 1. Mixed Tanks (Mixing Problems)
+Incluye:
 
-Simulates:
+Concentración variable en el tanque
 
-Concentration of salt over time
+Flujo de entrada y salida ajustables
 
-Inflow/outflow rates
+Visualización 3D del volumen y color del líquido (simula concentración)
 
-Volume changes
+Gráficas en tiempo real de la concentración
 
-Dynamic color changes so you see how concentration evolves
+🕳️ 2. Vaciado de Tanques Cilíndricos (VaciadoDeTanques.py)
 
-🕳️ 2. Draining Tanks (Torricelli-type models)
+Basado en la ley de Torricelli.
+Esta es una de las simulaciones más completas del proyecto.
 
-Simulates:
+Incluye:
 
-Height of the fluid as the tank drains
+Animación 3D del tanque y el nivel de agua bajando
 
-Faster/slower draining depending on the outlet size
+Gráficas simultáneas de altura y volumen vs tiempo
 
-Visible water level decreasing in real time
+Ecuación diferencial mostrada dinámicamente
 
-🔌 3. RLC Circuits
+Solución analítica calculada y mostrada paso a paso
 
-Simulates:
+Comparación entre solución numérica y teórica
 
-Charge and current over time
+Error porcentual en cada instante
 
-Underdamped, overdamped, critically damped behaviors
+Parámetros ajustables:
 
-Little animated circuit elements so it feels alive
+Altura inicial
 
-🌀 4. Spring–Mass System
+Radio del tanque
 
-Simulates:
+Radio del orificio
 
-Oscillations with or without damping
+Coeficiente de descarga
 
-Stiffer springs, heavier masses
+🔌 3. Circuito RLC (CircuitosRLC.py)
 
-Real-time bouncing motion in 3D (yes, it looks cool)
+Simula:
 
+Carga, corriente y tensión en el circuito
 
-🧰 Technologies Used
+Los tres regímenes: subamortiguado, críticamente amortiguado y sobreamortiguado
 
-Everything is built in one unified environment, so all simulations feel part of the same project.
+Gráfica en tiempo real
 
-🔹 Python
+Parámetros ajustables:
 
-The core of the project.
-Used for solving ODEs (SymPy, SciPy) and handling the mathematical model behind each simulation.
+R (resistencia)
+
+L (inductancia)
+
+C (capacitancia)
+
+Condiciones iniciales
+
+Se utiliza SciPy/Numpy para el modelo matemático y VPython para visualizar componentes animados.
+
+🌀 4. Sistema Masa–Resorte (SistemaMasaResorte.py)
+
+Incluye:
+
+Oscilación realista del resorte y la masa en 3D
+
+Damping opcional
+
+Constante k, masa m, y condiciones iniciales ajustables
+
+Gráfica de desplazamiento vs tiempo
+
+Animación suave y basada en el modelo diferencial
+
+🧰 Tecnologías Utilizadas
+
+El proyecto está completamente desarrollado en Python, bajo un único entorno coherente:
 
 🔹 VPython
 
-Used for real-time 3D animations.
-Perfect for tanks, springs, bouncing masses, and intuitive movement.
+Motor gráfico 3D
 
-🔹 Matplotlib / Plotly
+Sliders, botones y texto interactivo
 
-For dynamic 2D graphs when needed.
+Permite animaciones físicas claras y didácticas
+
+🔹 Numpy
+
+Cálculos numéricos
+
+Evaluación de ecuaciones diferenciales
+
+🔹 SciPy (en algunos módulos, como CircuitosRLC)
+
+Integración de ODEs
+
+🔹 Matplotlib (cuando es necesario)
+
+Gráficas adicionales
 
 🔹 Pandas
 
-For organizing parameters, outputs, tables, and experiment results.
+Organización de datos (cuando hace falta)
 
-🔹 Interactive Sliders (Streamlit)
+Todo está pensado para ser ejecutado en un único entorno Python, sin depender de navegadores o motores de videojuegos.
 
-The secret ingredient.
-Each simulation comes with smooth, friendly sliders that let you adjust:
+🎛️ Interactividad
 
-Initial conditions
+Cada simulación usa sliders y botones de VPython, permitiendo ajustar:
 
-Physical constants
+Condiciones iniciales
 
-Input/output flow rates
+Parámetros físicos
 
-Resistances, capacitances, inductances
+Constantes del modelo
 
-Mass, damping, stiffness
+Características geométricas (como radios o volúmenes)
 
-Beam properties
-…and immediately see what changes.
+Los cambios se reflejan de inmediato en la animación 3D y en las gráficas numéricas.
 
-🎛️ How It Works
+⚠️ Posible Configuración Necesaria en Windows (VPython)
 
-Choose a simulation from the menu
+En algunos equipos con Windows es necesario habilitar rutas largas para que VPython funcione correctamente.
 
-Use the sliders to set parameters
+🔧 Habilitar Long Paths (método recomendado)
 
-Hit Run Simulation
+Presiona Win + R, escribe:
 
-Watch the system move, flow, oscillate, or bend right in front of you
+gpedit.msc
 
-(Optional) Check plots or data tables generated automatically
 
-Everything updates in real time.
-Everything is visual.
-Everything is powered by real math.
+y presiona Enter.
+
+Navega a:
+Computer Configuration → Administrative Templates → System → Filesystem
+
+Busca la opción:
+Enable Win32 long paths
+
+Ábrela y selecciona Enabled
+
+Aplica los cambios y reinicia el computador
+
+📦 Ejecución
+
+Cualquier simulación puede iniciarse simplemente ejecutando su archivo:
+
+python VaciadoDeTanques.py
+python TanqueDeMezclas.py
+python CircuitosRLC.py
+python SistemaMasaResorte.py
+
+
+Cada una abrirá su ventana 3D con controles interactivos listos para usar.
+
+🎉 Objetivo General del Proyecto
+
+Hacer que el estudio de ecuaciones diferenciales sea visual, intuitivo y manipulable, permitiendo ver cómo responden los sistemas reales cuando se ajustan sus parámetros fundamentales.
